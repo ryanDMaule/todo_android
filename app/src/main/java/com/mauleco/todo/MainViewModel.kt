@@ -1,5 +1,6 @@
 package com.mauleco.todo
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mauleco.todo.models.Todo
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.math.log
 
 class MainViewModel: ViewModel() {
 
@@ -33,6 +35,24 @@ class MainViewModel: ViewModel() {
     fun clearAllTodos() {
         realm.writeBlocking {
             deleteAll()
+        }
+    }
+
+    private fun getSize() : Int{
+        return todos.value.size
+    }
+
+    fun addTask(pNote : String) {
+        viewModelScope.launch {
+            realm.write {
+                val todo = Todo().apply {
+                    itemNumber = getSize() + 1
+                    note = pNote
+                    status = null
+                    completionTime = null
+                }
+                copyToRealm(todo, updatePolicy = UpdatePolicy.ALL)
+            }
         }
     }
 
