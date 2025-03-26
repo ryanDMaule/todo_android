@@ -30,6 +30,12 @@ class MainViewModel: ViewModel() {
 //        createSampleData()
     }
 
+    fun clearAllTodos() {
+        realm.writeBlocking {
+            deleteAll()
+        }
+    }
+
     private fun createSampleData() {
         viewModelScope.launch {
             realm.write {
