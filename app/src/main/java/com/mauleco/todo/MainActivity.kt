@@ -1,5 +1,7 @@
 package com.mauleco.todo
 
+import android.content.Context
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -131,7 +133,10 @@ class MainActivity : ComponentActivity() {
                     .padding(16.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .background(Color.Green)
-                    .clickable { showDialog = true } // Open dialog on click
+                    .clickable {
+                        showDialog = true
+                        playSound(this@MainActivity, R.raw.click)
+                    } // Open dialog on click
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -177,13 +182,17 @@ class MainActivity : ComponentActivity() {
                             } else {
                                 Toast.makeText(this, "Please enter task text", Toast.LENGTH_SHORT).show()
                             }
+                            playSound(this@MainActivity, R.raw.other)
                         }
                     ) {
                         Text("Add")
                     }
                 },
                 dismissButton = {
-                    Button(onClick = { onDismiss() }) {
+                    Button(onClick = {
+                        onDismiss()
+                        playSound(this@MainActivity, R.raw.back)
+                    }) {
                         Text("Cancel")
                     }
                 },
@@ -335,6 +344,7 @@ class MainActivity : ComponentActivity() {
                     .wrapContentHeight() // Height depends on the content
                     .clickable {
                         viewModel.clearAllTodos()
+                        playSound(this@MainActivity, R.raw.clear)
                     }
                     .background(
                         Color.Red,
@@ -443,4 +453,14 @@ private fun getCurrentTime(): String {
 private fun getCurrentDate(): String {
     val formatter = SimpleDateFormat("MMM dd", Locale.getDefault()) // Format for "Mar 18"
     return formatter.format(Date())
+}
+
+private fun playSound(context: Context, soundResId: Int) {
+    val mediaPlayer = MediaPlayer.create(context, soundResId)
+    mediaPlayer?.start()
+
+    // Release resources when playback is done
+    mediaPlayer?.setOnCompletionListener {
+        it.release()
+    }
 }
