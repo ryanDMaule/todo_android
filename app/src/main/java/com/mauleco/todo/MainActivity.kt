@@ -187,7 +187,7 @@ class MainActivity : ComponentActivity() {
                         Text("Cancel")
                     }
                 },
-                containerColor = Color.Black
+                containerColor = Color.Blue
             )
         }
     }
