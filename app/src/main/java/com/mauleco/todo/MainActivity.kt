@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidthIn
@@ -163,43 +164,114 @@ class MainActivity : ComponentActivity() {
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { onDismiss() },
-                title = { Text("New Task", color = Color.White) },
-                text = {
-                    TextField(
-                        value = newTaskText,
-                        onValueChange = { newTaskText = it },
-                        label = { Text("Enter task") },
-                        textStyle = TextStyle(color = Color.White)
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            if (newTaskText.isNotBlank()) {
-                                viewModel.addTask(newTaskText)
-                                newTaskText = "" // Reset text field
-                                onDismiss() // Close dialog
-                            } else {
-                                Toast.makeText(this, "Please enter task text", Toast.LENGTH_SHORT).show()
-                            }
-                            playSound(this@MainActivity, R.raw.other)
-                        }
+                shape = RoundedCornerShape(2.dp), // Set corners to 2.dp
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(), // Make the Box take the full width of the dialog
+                        contentAlignment = Alignment.Center // Center the text inside the Box
                     ) {
-                        Text("Add")
+                        TaskTitleWithShadow(text = "NEW TASK")
+                    }
+                },
+                text = {
+                    Column {
+                        // The TextField will expand vertically if the text gets too long
+                        TextField(
+                            value = newTaskText,
+                            onValueChange = {
+                                if (it.length <= 250) { // Limit input to 250 characters
+                                    newTaskText = it
+                                }
+                            },
+                            label = {
+                                Text(
+                                    text = "Enter task",
+                                    fontFamily = FontFamily(Font(R.font.vt323)),
+                                    color = Color.Yellow // Yellow label color
+                                )
+                            },
+                            textStyle = TextStyle(
+                                color = Color.White,
+                                fontFamily = FontFamily(Font(R.font.vt323)),
+                                fontSize = 20.sp), // White text color
+                            modifier = Modifier
+                                .fillMaxWidth() // Ensures the TextField takes up full width
+                                .heightIn(min = 160.dp) // Minimum height to allow for initial expansion
+                                .padding(bottom = 16.dp), // Padding between TextField and buttons
+                            singleLine = false, // Allow multi-line
+                            colors = TextFieldDefaults.textFieldColors(
+                                containerColor = Color.Black, // Set background color to black
+                                focusedIndicatorColor = Color.Transparent, // Hide the indicator line when focused
+                                unfocusedIndicatorColor = Color.Transparent, // Hide the indicator line when unfocused
+                                cursorColor = Color.Green, // Set cursor color to green
+                                textColor = Color.White // Set text color to white
+                            )
+                        )
+                    }
+                },
+                // Replace the buttons with a Row to control button widths
+                confirmButton = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp) // Adds space between the buttons
+                    ) {
+                        // Cancel Button (Left, Red)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f) // Takes 50% of the width
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(Color.Red)
+                                .clickable {
+                                    onDismiss()
+                                    playSound(this@MainActivity, R.raw.back)
+                                }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Cancel",
+                                fontSize = 18.sp,
+                                fontFamily = FontFamily(Font(R.font.vt323)),
+                                color = Color.White
+                            )
+                        }
+
+                        // Add Button (Right, Green)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f) // Takes 50% of the width
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(Color.Green)
+                                .clickable {
+                                    if (newTaskText.isNotBlank()) {
+                                        viewModel.addTask(newTaskText)
+                                        newTaskText = "" // Reset input
+                                        onDismiss()
+                                        playSound(this@MainActivity, R.raw.other)
+                                    } else {
+                                        Toast.makeText(this@MainActivity, "Please enter task text", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Add",
+                                fontSize = 18.sp,
+                                fontFamily = FontFamily(Font(R.font.vt323)),
+                                color = Color.Black
+                            )
+                        }
                     }
                 },
                 dismissButton = {
-                    Button(onClick = {
-                        onDismiss()
-                        playSound(this@MainActivity, R.raw.back)
-                    }) {
-                        Text("Cancel")
-                    }
+                    // The dismiss button is no longer needed, as we've handled both buttons in confirmButton.
                 },
                 containerColor = Color.Blue
             )
         }
     }
+
     @Composable
     fun HeaderSection() {
         val time = remember { mutableStateOf(getCurrentTime()) }
