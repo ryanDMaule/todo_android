@@ -178,6 +178,7 @@ class MainActivity : ComponentActivity() {
                         // The TextField will expand vertically if the text gets too long
                         TextField(
                             value = newTaskText,
+                            shape = RoundedCornerShape(2.dp),
                             onValueChange = {
                                 if (it.length <= 250) { // Limit input to 250 characters
                                     newTaskText = it
