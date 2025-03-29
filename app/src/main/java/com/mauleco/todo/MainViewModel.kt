@@ -38,6 +38,30 @@ class MainViewModel: ViewModel() {
         }
     }
 
+    fun clearTodo(todo: Todo) {
+        realm.writeBlocking {
+            val latestTodo = findLatest(todo)
+            if (latestTodo != null) {
+                this.delete(latestTodo)
+            }
+        }
+    }
+
+    fun updateTodo(todo: Todo, uNote: String, uStatus: Boolean? ) {
+        realm.writeBlocking {
+            val latestTodo = findLatest(todo)
+            if (latestTodo != null) {
+                if (uNote.isNotBlank()){
+                    latestTodo.note = uNote
+                }
+                if (uStatus != latestTodo.status) {
+                    latestTodo.status = uStatus
+                }
+                copyToRealm(latestTodo, updatePolicy = UpdatePolicy.ALL)
+            }
+        }
+    }
+
     private fun getSize() : Int{
         return todos.value.size
     }

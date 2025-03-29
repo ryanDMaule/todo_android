@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -33,10 +32,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -57,7 +57,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mauleco.todo.models.Todo
@@ -103,6 +102,8 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun TaskListSection(todoList: List<Todo>) {
         var showDialog by remember { mutableStateOf(false) }
+        var showEditDialog by remember { mutableStateOf(false) }
+        var taskToEdit by remember { mutableStateOf<Todo?>(null) }
 
         Box(
             modifier = Modifier
@@ -121,10 +122,15 @@ class MainActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(todoList) { todo ->
-                        ListItem(todo = todo)
+                        ListItem(todo = todo, onEditClick = {
+                            taskToEdit = todo
+                            showEditDialog = true
+                            playSound(this@MainActivity, R.raw.click)
+                        })
                     }
                 }
             }
+
 
             // Anchored button at the bottom
             Box(
@@ -155,7 +161,174 @@ class MainActivity : ComponentActivity() {
             showDialog = showDialog,
             onDismiss = { showDialog = false }
         )
+
+        // Show Dialog when showDialog is true
+        if (showEditDialog && taskToEdit != null) {
+            BasicTaskDialog(
+                todo = taskToEdit!!,
+                onDismiss = { showEditDialog = false }
+            )
+        }
+
     }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun BasicTaskDialog(todo: Todo, onDismiss: () -> Unit) {
+        var editTaskText by remember { mutableStateOf("") }
+
+        // Determine initial selection based on todo.status
+        val initialSelection = when (todo.status) {
+            true -> "Completed"
+            null -> "Underway"
+            false -> "Aborted"
+        }
+
+        // State to track the selected option
+        var selectedOption by remember { mutableStateOf(initialSelection) }
+
+        AlertDialog(
+            onDismissRequest = { onDismiss() },
+            shape = RoundedCornerShape(2.dp), // Set corners to 2.dp
+            title = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(), // Make the Box take the full width of the dialog
+                    contentAlignment = Alignment.Center // Center the text inside the Box
+                ) {
+                    TaskTitleWithShadow(text = "TASK DETAILS")
+                }
+            },
+            text = {
+                Column {
+
+                    Text(
+                        text = "Note: ${todo.note}",
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily(Font(R.font.vt323)),
+                        color = Color.White,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Radio Buttons Section
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Black) // Black background
+                            .clip(RoundedCornerShape(2.dp))
+                    ) {
+                        Column {
+                            val radioOptions = listOf("Completed", "Underway", "Aborted")
+
+                            radioOptions.forEach { option ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedOption = option
+                                            playSound(this@MainActivity, R.raw.click)
+                                        }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    RadioButton(
+                                        selected = selectedOption == option,
+                                        onClick = { selectedOption = option },
+                                        colors = RadioButtonDefaults.colors(selectedColor = Color.Yellow)
+                                    )
+                                    Text(
+                                        text = option,
+                                        fontFamily = FontFamily(Font(R.font.vt323)),
+                                        fontSize = 16.sp,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                }
+            },
+            // Replace the buttons with a Row to control button widths
+            confirmButton = {
+                // Cancel Button (Left, Red)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth() // Makes the button take up the full width
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(Color.Red)
+                        .clickable {
+                            editTaskText = "" // Reset input
+                            onDismiss()
+                            playSound(this@MainActivity, R.raw.back)
+                        }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Cancel",
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily(Font(R.font.vt323)),
+                        color = Color.White
+                    )
+                }
+            },
+            dismissButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp) // Adds space between the buttons
+                ) {
+                    // Delete Button (Left, Red)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f) // Takes 50% of the width
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color.Red)
+                            .clickable {
+                                viewModel.clearTodo(todo)
+                                onDismiss()
+                                playSound(this@MainActivity, R.raw.clear)
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Delete",
+                            fontSize = 18.sp,
+                            fontFamily = FontFamily(Font(R.font.vt323)),
+                            color = Color.White
+                        )
+                    }
+
+                    // Add Button (Right, Green)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f) // Takes 50% of the width
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color.Green)
+                            .clickable {
+                                //todo - update entry
+                                viewModel.updateTodo(todo, uNote = editTaskText, uStatus = selectedOptionToBoolean(selectedOption))
+                                editTaskText = "" // Reset input
+                                onDismiss()
+                                playSound(this@MainActivity, R.raw.other)
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Update",
+                            fontSize = 18.sp,
+                            fontFamily = FontFamily(Font(R.font.vt323)),
+                            color = Color.Black
+                        )
+                    }
+                }
+            },
+            containerColor = Color.Blue
+        )
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun AddTaskDialog(showDialog: Boolean, onDismiss: () -> Unit) {
@@ -224,6 +397,7 @@ class MainActivity : ComponentActivity() {
                                 .background(Color.Red)
                                 .clickable {
                                     onDismiss()
+                                    newTaskText = "" // Reset input
                                     playSound(this@MainActivity, R.raw.back)
                                 }
                                 .padding(vertical = 12.dp),
@@ -250,7 +424,13 @@ class MainActivity : ComponentActivity() {
                                         onDismiss()
                                         playSound(this@MainActivity, R.raw.other)
                                     } else {
-                                        Toast.makeText(this@MainActivity, "Please enter task text", Toast.LENGTH_SHORT).show()
+                                        Toast
+                                            .makeText(
+                                                this@MainActivity,
+                                                "Please enter task text",
+                                                Toast.LENGTH_SHORT
+                                            )
+                                            .show()
                                     }
                                 }
                                 .padding(vertical = 12.dp),
@@ -272,7 +452,6 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
-
     @Composable
     fun HeaderSection() {
         val time = remember { mutableStateOf(getCurrentTime()) }
@@ -461,12 +640,13 @@ class MainActivity : ComponentActivity() {
         }
     }
     @Composable
-    fun ListItem(todo: Todo) {
+    fun ListItem(todo: Todo, onEditClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(2.dp))
                 .border(2.dp, Color.White, RoundedCornerShape(2.dp)) // White border
+                .clickable { onEditClick() } // Trigger the click action
         ) {
             Row(
                 modifier = Modifier.height(IntrinsicSize.Min), // Ensures left box expands dynamically
@@ -506,6 +686,14 @@ class MainActivity : ComponentActivity() {
 
 }
 
+private fun selectedOptionToBoolean(status : String) : Boolean? {
+    return when (status) {
+        "Completed" -> true
+        "Underway" -> null
+        "Aborted" -> false
+        else -> { null }
+    }
+}
 private fun getStatus(status : Boolean?) : Color {
     return when (status) {
         false -> {
@@ -527,7 +715,6 @@ private fun getCurrentDate(): String {
     val formatter = SimpleDateFormat("MMM dd", Locale.getDefault()) // Format for "Mar 18"
     return formatter.format(Date())
 }
-
 private fun playSound(context: Context, soundResId: Int) {
     val mediaPlayer = MediaPlayer.create(context, soundResId)
     mediaPlayer?.start()
